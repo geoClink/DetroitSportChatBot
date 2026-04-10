@@ -2,6 +2,7 @@ import os
 import time
 import streamlit as st
 from groq import RateLimitError, AuthenticationError
+import openai
 from chatbot import chat
 from dotenv import load_dotenv
 
@@ -165,6 +166,18 @@ if user_input:
                 text_placeholder.error(
                     "Invalid API key. Please check your key and try again. "
                     "Get a free key at [console.groq.com](https://console.groq.com)."
+                )
+                st.stop()
+            except openai.RateLimitError:
+                tool_placeholder.empty()
+                text_placeholder.warning(
+                    "The free model is temporarily rate-limited. Wait a moment and try again."
+                )
+                st.stop()
+            except openai.AuthenticationError:
+                tool_placeholder.empty()
+                text_placeholder.error(
+                    "Invalid OpenRouter API key. Please check your key and try again."
                 )
                 st.stop()
 
