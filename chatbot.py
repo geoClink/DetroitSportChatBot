@@ -8,6 +8,12 @@ from sports_tools import (
     get_nba_scores,
     get_mlb_scores,
     get_nhl_scores,
+    get_standings,
+    get_schedule,
+    get_injuries,
+    get_roster,
+    get_news,
+    get_team_stats,
     tools,
     groq_tools,
 )
@@ -101,7 +107,7 @@ GORDIE HOWE!!! HE IS THE ABSOLUTE GOAT!!!</response>
 </bad_examples>"""
 
 
-def run_tool(tool_name: str) -> list:
+def run_tool(tool_name: str, tool_input: dict = {}) -> list:
     if tool_name == "get_nfl_scores":
         return get_nfl_scores()
     elif tool_name == "get_nba_scores":
@@ -110,6 +116,18 @@ def run_tool(tool_name: str) -> list:
         return get_mlb_scores()
     elif tool_name == "get_nhl_scores":
         return get_nhl_scores()
+    elif tool_name == "get_standings":
+        return get_standings(tool_input.get("sport", "nfl"))
+    elif tool_name == "get_schedule":
+        return get_schedule(tool_input.get("sport", "nfl"))
+    elif tool_name == "get_injuries":
+        return get_injuries(tool_input.get("sport", "nfl"))
+    elif tool_name == "get_roster":
+        return get_roster(tool_input.get("sport", "nfl"))
+    elif tool_name == "get_news":
+        return get_news(tool_input.get("sport", "nfl"))
+    elif tool_name == "get_team_stats":
+        return get_team_stats(tool_input.get("sport", "nfl"))
     return []
 
 
@@ -127,7 +145,7 @@ def chat_anthropic(messages: list, api_key: str):
 
     while response.stop_reason == "tool_use":
         tool_use = next(b for b in response.content if b.type == "tool_use")
-        tool_result = run_tool(tool_use.name)
+        tool_result = run_tool(tool_use.name, tool_use.input)
         messages = messages + [
             {"role": "assistant", "content": response.content},
             {
@@ -179,7 +197,9 @@ def chat_groq(messages: list, api_key: str):
         groq_messages.append(response.choices[0].message)
 
         for tool_call in tool_calls:
-            tool_result = run_tool(tool_call.function.name)
+            tool_result = run_tool(
+                tool_call.function.name, json.loads(tool_call.function.arguments or "{}")
+            )
             groq_messages.append(
                 {
                     "role": "tool",
