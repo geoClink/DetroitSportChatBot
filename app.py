@@ -1,7 +1,7 @@
 import os
 import time
 import streamlit as st
-from groq import RateLimitError
+from groq import RateLimitError, AuthenticationError
 from chatbot import chat
 from dotenv import load_dotenv
 
@@ -155,6 +155,13 @@ if user_input:
                     "The shared API key has hit its daily limit. "
                     "Get your own free key at [console.groq.com](https://console.groq.com) "
                     "and paste it in the sidebar — it takes 30 seconds."
+                )
+                st.stop()
+            except AuthenticationError:
+                tool_placeholder.empty()
+                text_placeholder.error(
+                    "Invalid API key. Please check your key and try again. "
+                    "Get a free key at [console.groq.com](https://console.groq.com)."
                 )
                 st.stop()
 
