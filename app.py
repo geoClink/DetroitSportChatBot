@@ -59,11 +59,14 @@ st.title("Detroit Sports Chatbot")
 
 with st.sidebar:
     st.title("Settings")
-    provider = st.selectbox("Provider", ["Groq", "Anthropic"])
+    provider = st.selectbox("Provider", ["OpenRouter", "Groq", "Anthropic"])
 
     if provider == "Groq":
         server_key = os.environ.get("GROQ_API_KEY", "")
         st.caption("Get a free key at console.groq.com")
+    elif provider == "OpenRouter":
+        server_key = os.environ.get("OPENROUTER_API_KEY", "")
+        st.caption("Get a free key at openrouter.ai")
     else:
         server_key = os.environ.get("ANTHROPIC_API_KEY", "")
         st.caption("Get a free key at console.anthropic.com")
