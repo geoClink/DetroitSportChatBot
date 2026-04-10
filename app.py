@@ -136,21 +136,26 @@ if user_input:
             st.write(user_input)
 
         with st.chat_message("assistant"):
+            thinking_placeholder = st.empty()
             tool_placeholder = st.empty()
             text_placeholder = st.empty()
             full_text = ""
             tools_called = []
 
+            thinking_placeholder.caption("⏳ Thinking...")
+
             try:
                 for chunk in chat(st.session_state.messages, provider.lower(), api_key):
                     if isinstance(chunk, dict) and "tool" in chunk:
                         # Show which ESPN tool is being called
+                        thinking_placeholder.empty()
                         label = TOOL_LABELS.get(chunk["tool"], chunk["tool"])
                         tools_called.append(label)
                         tool_placeholder.caption(
                             "📡 Fetching live data: " + ", ".join(tools_called)
                         )
                     else:
+                        thinking_placeholder.empty()
                         full_text += chunk
                         text_placeholder.markdown(full_text)
             except RateLimitError:

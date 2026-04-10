@@ -2,18 +2,20 @@
 
 An AI-powered chatbot that answers questions about Detroit sports — the Lions, Tigers, Red Wings, and Pistons — with live data fetched in real time from the ESPN API.
 
-Built with Python, Streamlit, and support for both Anthropic Claude and Groq (free).
+Built with Python, Streamlit, and support for Anthropic Claude, Groq, and OpenRouter (free).
 
 Response quality was measured and improved using an automated eval pipeline — from **3.2 → 4.1 out of 5 (28% improvement)** through iterative prompt engineering.
 
-🚀 **[Live Demo](https://detroitsportchatbot.onrender.com)** — powered by Groq's free API, no setup needed.
+🚀 **[Live Demo](https://detroitsportchatbot.onrender.com)** — powered by OpenRouter's free API, no setup needed.
 
 ---
 
 ## Features
 
-- Conversational AI powered by Claude Sonnet or Llama 3.3 via Groq
-- Supports both Anthropic and Groq — switch providers in the sidebar
+- Conversational AI powered by Claude Sonnet, Llama 3.3 via Groq, or OpenRouter's free model router
+- Supports Anthropic, Groq, and OpenRouter — switch providers in the sidebar
+- OpenRouter is the default provider — visitors can use the live demo with no API key required
+- Thinking indicator shows while the AI is generating a response
 - 15 live data tools powered by the ESPN unofficial API
 - Tool use — the model decides when to fetch live data based on the question
 - Live tool indicator shows which ESPN endpoint is being called
@@ -22,7 +24,7 @@ Response quality was measured and improved using an automated eval pipeline — 
 - Prompt-engineered system prompt scored and improved through automated eval (3.2 → 4.1 out of 5)
 - ESPN responses cached for 30 seconds to reduce redundant API calls
 - Rate limiting to protect against API quota exhaustion
-- Friendly error message when the shared API key hits its daily limit
+- Friendly error messages for rate limits and invalid API keys
 - API key never exposed to the browser — stored server-side only
 
 ---
@@ -72,17 +74,20 @@ pip install -r requirements.txt
 
 **4. Add your API key**
 
-Create a `.env` file in the project root. You can use either provider:
+Create a `.env` file in the project root. You can use any of the supported providers:
 
 ```
-# Option 1 — Anthropic (get a key at console.anthropic.com)
-ANTHROPIC_API_KEY=your-key-here
+# Option 1 — OpenRouter (free, get a key at openrouter.ai)
+OPENROUTER_API_KEY=your-key-here
 
 # Option 2 — Groq (free, get a key at console.groq.com)
 GROQ_API_KEY=your-key-here
+
+# Option 3 — Anthropic (get a key at console.anthropic.com)
+ANTHROPIC_API_KEY=your-key-here
 ```
 
-You can also paste your key directly in the sidebar when the app is running.
+If no key is found in the environment, the sidebar will prompt you to paste one in.
 
 **5. Run the app**
 ```bash
@@ -98,8 +103,8 @@ Open your browser at `http://localhost:8501`
 ```
 DetroitSportChatBot/
 ├── app.py              # Streamlit UI with provider selector
-├── chatbot.py          # API logic for Anthropic and Groq, tool use, streaming
-├── sports_tools.py     # ESPN API functions and tool schemas for both providers
+├── chatbot.py          # API logic for Anthropic, Groq, and OpenRouter — tool use and streaming
+├── sports_tools.py     # ESPN API functions and tool schemas
 ├── eval.py             # Automated prompt evaluation and grading
 ├── requirements.txt    # Dependencies
 ├── .env                # API keys (not committed)
@@ -136,7 +141,7 @@ The system prompt was iteratively improved using an automated eval pipeline:
 - Python
 - Anthropic Claude API
 - Groq API (free tier)
+- OpenRouter API (free tier)
 - Streamlit
 - ESPN unofficial API
 - python-dotenv
-- flake8 + black
