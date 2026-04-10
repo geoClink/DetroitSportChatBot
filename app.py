@@ -9,14 +9,14 @@ st.title("Detroit Sports Chatbot")
 
 with st.sidebar:
     st.title("Settings")
-    provider = st.selectbox("Provider", ["Anthropic", "Groq"])
+    provider = st.selectbox("Provider", ["Groq", "Anthropic"])
 
-    if provider == "Anthropic":
-        st.caption("Get a free key at console.anthropic.com")
-        default_key = os.environ.get("ANTHROPIC_API_KEY", "")
-    else:
+    if provider == "Groq":
         st.caption("Get a free key at console.groq.com")
         default_key = os.environ.get("GROQ_API_KEY", "")
+    else:
+        st.caption("Get a free key at console.anthropic.com")
+        default_key = os.environ.get("ANTHROPIC_API_KEY", "")
 
     api_key = st.text_input(
         "API Key",
