@@ -14,7 +14,7 @@ Response quality was measured and improved using an automated eval pipeline — 
 
 - Conversational AI powered by Claude Sonnet or Llama 3.3 via Groq
 - Supports both Anthropic and Groq — switch providers in the sidebar
-- 13 live data tools powered by the ESPN unofficial API
+- 15 live data tools powered by the ESPN unofficial API
 - Tool use — the model decides when to fetch live data based on the question
 - Live tool indicator shows which ESPN endpoint is being called
 - Streaming responses displayed word by word
@@ -29,11 +29,14 @@ Response quality was measured and improved using an automated eval pipeline — 
 
 ## Live Data Tools
 
-The chatbot has access to 13 ESPN API tools covering all four Detroit teams:
+The chatbot has access to 15 ESPN API tools covering all four Detroit teams:
 
 | Tool | What it returns |
 |---|---|
-| Scores | Live scores and game status for NFL, NBA, MLB, NHL |
+| NFL Scores | Live NFL scores and game status |
+| NBA Scores | Live NBA scores and game status |
+| MLB Scores | Live MLB scores and game status |
+| NHL Scores | Live NHL scores and game status |
 | Standings | Conference standings |
 | Schedule | Next 5 upcoming games |
 | Injuries | Current injury report |
