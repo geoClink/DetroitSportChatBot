@@ -253,8 +253,64 @@ def chat_groq(messages: list, api_key: str):
             yield chunk.choices[0].delta.content
 
 
+def chat_openrouter(messages: list, api_key: str):
+    from openai import OpenAI
+
+    client = OpenAI(
+        base_url="https://openrouter.ai/api/v1",
+        api_key=api_key,
+    )
+
+    # Same message format as Groq (OpenAI-compatible)
+    openrouter_messages = [{"role": "system", "content": SYSTEM_PROMPT}] + messages
+
+    # Handle tool use
+    response = client.chat.completions.create(
+        model="meta-llama/llama-3.3-70b-instruct:free",
+        messages=openrouter_messages,
+        tools=groq_tools,
+        tool_choice="auto",
+    )
+
+    while response.choices[0].finish_reason == "tool_calls":
+        tool_calls = response.choices[0].message.tool_calls
+        openrouter_messages.append(response.choices[0].message)
+
+        for tool_call in tool_calls:
+            yield {"tool": tool_call.function.name}
+            tool_result = run_tool(
+                tool_call.function.name, json.loads(tool_call.function.arguments or "{}")
+            )
+            openrouter_messages.append(
+                {
+                    "role": "tool",
+                    "tool_call_id": tool_call.id,
+                    "content": json.dumps(tool_result),
+                }
+            )
+
+        response = client.chat.completions.create(
+            model="meta-llama/llama-3.3-70b-instruct:free",
+            messages=openrouter_messages,
+            tools=groq_tools,
+            tool_choice="auto",
+        )
+
+    # Stream final response
+    stream = client.chat.completions.create(
+        model="meta-llama/llama-3.3-70b-instruct:free",
+        messages=openrouter_messages,
+        stream=True,
+    )
+    for chunk in stream:
+        if chunk.choices[0].delta.content:
+            yield chunk.choices[0].delta.content
+
+
 def chat(messages: list, provider: str = "anthropic", api_key: str = ""):
     if provider == "groq":
         yield from chat_groq(messages, api_key)
+    elif provider == "openrouter":
+        yield from chat_openrouter(messages, api_key)
     else:
         yield from chat_anthropic(messages, api_key)
