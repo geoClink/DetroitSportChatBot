@@ -1,10 +1,39 @@
+import time
 import requests
+
+# Simple cache: stores {url: (timestamp, data)}
+_cache: dict = {}
+CACHE_TTL = 30  # seconds
+
+
+def _fetch_espn(url: str) -> dict:
+    """Fetch ESPN API data with caching and error handling."""
+    now = time.time()
+    if url in _cache:
+        cached_at, cached_data = _cache[url]
+        if now - cached_at < CACHE_TTL:
+            return cached_data
+
+    try:
+        response = requests.get(url, timeout=5)
+        response.raise_for_status()
+        data = response.json()
+    except requests.exceptions.Timeout:
+        return {"error": "ESPN API timed out. Try again in a moment."}
+    except requests.exceptions.HTTPError as e:
+        return {"error": f"ESPN API returned an error: {e}"}
+    except Exception:
+        return {"error": "Could not reach ESPN API. Try again in a moment."}
+
+    _cache[url] = (now, data)
+    return data
 
 
 def get_nfl_scores():
     url = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard"
-    response = requests.get(url)
-    data = response.json()
+    data = _fetch_espn(url)
+    if "error" in data:
+        return [data]
     games = []
     for event in data.get("events", []):
         competition = event["competitions"][0]
@@ -25,8 +54,9 @@ def get_nfl_scores():
 
 def get_nba_scores():
     url = "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard"
-    response = requests.get(url)
-    data = response.json()
+    data = _fetch_espn(url)
+    if "error" in data:
+        return [data]
     games = []
     for event in data.get("events", []):
         competition = event["competitions"][0]
@@ -47,8 +77,9 @@ def get_nba_scores():
 
 def get_mlb_scores():
     url = "https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard"
-    response = requests.get(url)
-    data = response.json()
+    data = _fetch_espn(url)
+    if "error" in data:
+        return [data]
     games = []
     for event in data.get("events", []):
         competition = event["competitions"][0]
@@ -69,8 +100,9 @@ def get_mlb_scores():
 
 def get_nhl_scores():
     url = "https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/scoreboard"
-    response = requests.get(url)
-    data = response.json()
+    data = _fetch_espn(url)
+    if "error" in data:
+        return [data]
     games = []
     for event in data.get("events", []):
         competition = event["competitions"][0]
@@ -102,7 +134,7 @@ def get_standings(sport: str) -> list:
 
     sport_path, league, detroit_team = sport_map[sport.lower()]
     url = f"https://site.api.espn.com/apis/v2/sports/{sport_path}/{league}/standings"
-    data = requests.get(url).json()
+    data = _fetch_espn(url)
 
     standings = []
     for conference in data.get("children", []):
@@ -135,7 +167,7 @@ def get_schedule(sport: str) -> list:
 
     sport_path, league = sport_map[sport.lower()]
     url = f"https://site.api.espn.com/apis/site/v2/sports/{sport_path}/{league}/teams/det/schedule"
-    data = requests.get(url).json()
+    data = _fetch_espn(url)
 
     upcoming = []
     for event in data.get("events", []):
@@ -172,7 +204,7 @@ def get_injuries(sport: str) -> list:
 
     sport_path, league = sport_map[sport.lower()]
     url = f"https://site.api.espn.com/apis/site/v2/sports/{sport_path}/{league}/teams/det/roster"
-    data = requests.get(url).json()
+    data = _fetch_espn(url)
 
     injured = []
     for group in data.get("athletes", []):
@@ -209,7 +241,7 @@ def get_news(sport: str) -> list:
 
     sport_path, league = sport_map[sport.lower()]
     url = f"https://site.api.espn.com/apis/site/v2/sports/{sport_path}/{league}/news?limit=5"
-    data = requests.get(url).json()
+    data = _fetch_espn(url)
 
     articles = []
     for article in data.get("articles", []):
@@ -238,7 +270,7 @@ def get_team_stats(sport: str) -> list:
     url = (
         f"https://site.api.espn.com/apis/site/v2/sports/{sport_path}/{league}/teams/det/statistics"
     )
-    data = requests.get(url).json()
+    data = _fetch_espn(url)
 
     stats = []
     categories = data.get("results", {}).get("stats", {}).get("categories", [])
@@ -268,7 +300,7 @@ def get_roster(sport: str) -> dict:
 
     sport_path, league = sport_map[sport.lower()]
     url = f"https://site.api.espn.com/apis/site/v2/sports/{sport_path}/{league}/teams/det/roster"
-    data = requests.get(url).json()
+    data = _fetch_espn(url)
 
     roster = {}
     for group in data.get("athletes", []):
@@ -288,7 +320,7 @@ def get_roster(sport: str) -> dict:
 def _get_det_game_id(sport_path: str, league: str) -> str | None:
     """Find the current or most recent Detroit game ID from the scoreboard."""
     url = f"https://site.api.espn.com/apis/site/v2/sports/{sport_path}/{league}/scoreboard"
-    data = requests.get(url).json()
+    data = _fetch_espn(url)
     for event in data.get("events", []):
         competitors = event["competitions"][0]["competitors"]
         if any(t["team"]["abbreviation"] == "DET" for t in competitors):
@@ -309,7 +341,7 @@ def get_transactions(sport: str) -> list:
 
     sport_path, league, team_id = sport_map[sport.lower()]
     url = f"https://site.api.espn.com/apis/site/v2/sports/{sport_path}/{league}/transactions?limit=10&team={team_id}"
-    data = requests.get(url).json()
+    data = _fetch_espn(url)
 
     transactions = []
     for item in data.get("transactions", []):
@@ -337,7 +369,7 @@ def get_depth_chart(sport: str) -> list:
     url = (
         f"https://site.api.espn.com/apis/site/v2/sports/{sport_path}/{league}/teams/det/depthcharts"
     )
-    data = requests.get(url).json()
+    data = _fetch_espn(url)
 
     depth_chart = []
     for formation in data.get("depthchart", []):
@@ -376,7 +408,7 @@ def get_leaders(sport: str) -> list:
         return [{"message": "No current game found for Detroit"}]
 
     url = f"https://site.api.espn.com/apis/site/v2/sports/{sport_path}/{league}/summary?event={game_id}"
-    data = requests.get(url).json()
+    data = _fetch_espn(url)
 
     result = []
     for team_leaders in data.get("leaders", []):
@@ -412,7 +444,7 @@ def get_play_by_play(sport: str) -> list:
         return [{"message": "No current game found for Detroit"}]
 
     url = f"https://site.api.espn.com/apis/site/v2/sports/{sport_path}/{league}/summary?event={game_id}"
-    data = requests.get(url).json()
+    data = _fetch_espn(url)
 
     plays = data.get("plays", [])
     if not plays:
@@ -449,7 +481,7 @@ def get_box_score(sport: str) -> list:
         return [{"message": "No current game found for Detroit"}]
 
     url = f"https://site.api.espn.com/apis/site/v2/sports/{sport_path}/{league}/summary?event={game_id}"
-    data = requests.get(url).json()
+    data = _fetch_espn(url)
 
     result = []
     for team_data in data.get("boxscore", {}).get("players", []):

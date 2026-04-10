@@ -16,9 +16,14 @@ Response quality was measured and improved using an automated eval pipeline — 
 - Supports both Anthropic and Groq — switch providers in the sidebar
 - 13 live data tools powered by the ESPN unofficial API
 - Tool use — the model decides when to fetch live data based on the question
+- Live tool indicator shows which ESPN endpoint is being called
 - Streaming responses displayed word by word
+- Suggested questions on first load so new users know what to ask
 - Prompt-engineered system prompt scored and improved through automated eval (3.2 → 4.1 out of 5)
-- Secure API key handling with python-dotenv
+- ESPN responses cached for 30 seconds to reduce redundant API calls
+- Rate limiting to protect against API quota exhaustion
+- Friendly error message when the shared API key hits its daily limit
+- API key never exposed to the browser — stored server-side only
 
 ---
 

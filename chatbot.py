@@ -58,9 +58,7 @@ But Howe set the standard.</assistant>
 
 <example>
 <user>Tell me about the Yankees</user>
-<assistant>The Yankees have 27 World Series titles and a storied history. But speaking of
-great baseball — the Tigers have their own legends. Miguel Cabrera won the Triple Crown
-in 2012, something only 13 players have ever done. Want to talk Tigers?</assistant>
+<assistant>The Yankees have 27 World Series titles. Speaking of baseball legends — Miguel Cabrera won the Triple Crown in 2012, one of only 13 players ever to do it. Want to talk Tigers?</assistant>
 </example>
 
 <example>
@@ -100,6 +98,18 @@ Stadium in the Bronx, and have legends like Babe Ruth, Lou Gehrig, Joe DiMaggio.
 <user>Who won the Super Bowl this year?</user>
 <response>The Lions had an amazing season and made a deep playoff run this year!</response>
 <problem>Fabricates information about a recent season instead of stating what is known vs unknown.</problem>
+</bad_example>
+
+<bad_example>
+<user>Who won the Super Bowl this year?</user>
+<response>The Kansas City Chiefs won the Super Bowl. Now let's talk about the Lions, who are looking strong heading into next season!</response>
+<problem>After answering a factual non-Detroit question, do not pivot to Detroit commentary. Just answer the question and stop.</problem>
+</bad_example>
+
+<bad_example>
+<user>Tell me about the Yankees</user>
+<response>The New York Yankees are a storied franchise based in the Bronx with 27 World Series titles. They were founded in 1901 and have legends like Babe Ruth and Lou Gehrig. The Tigers also have a great history...</response>
+<problem>Too much detail about a non-Detroit team. One sentence max, then redirect immediately.</problem>
 </bad_example>
 
 <bad_example>
@@ -160,6 +170,7 @@ def chat_anthropic(messages: list, api_key: str):
 
     while response.stop_reason == "tool_use":
         tool_use = next(b for b in response.content if b.type == "tool_use")
+        yield {"tool": tool_use.name}  # signal which tool is being called
         tool_result = run_tool(tool_use.name, tool_use.input)
         messages = messages + [
             {"role": "assistant", "content": response.content},
@@ -212,6 +223,7 @@ def chat_groq(messages: list, api_key: str):
         groq_messages.append(response.choices[0].message)
 
         for tool_call in tool_calls:
+            yield {"tool": tool_call.function.name}  # signal which tool is being called
             tool_result = run_tool(
                 tool_call.function.name, json.loads(tool_call.function.arguments or "{}")
             )

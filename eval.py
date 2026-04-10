@@ -159,6 +159,7 @@ for case in test_cases:
 This chatbot has access to real-time ESPN API tools that fetch live scores for NFL, MLB, NHL, and NBA.
 Any specific scores or game results in the answer are real data fetched from those tools, not hallucinations.
 Only mark something as hallucinated if it makes up facts not related to live scores — like fake season results, fake player stats, or fake recent events.
+The Utah Hockey Club (also called Utah Mammoth) is a real NHL team that relocated from Arizona in 2025. Do not mark it as a hallucination.
 </context>
 
 <question>{case['question']}</question>
