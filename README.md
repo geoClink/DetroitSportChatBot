@@ -1,12 +1,12 @@
 # Detroit Sports Chatbot
 
-An AI-powered chatbot that answers questions about Detroit sports — the Lions, Tigers, Red Wings, and Pistons — with live scores fetched in real time from the ESPN API.
+An AI-powered chatbot that answers questions about Detroit sports — the Lions, Tigers, Red Wings, and Pistons — with live data fetched in real time from the ESPN API.
 
 Built with Python, Streamlit, and support for both Anthropic Claude and Groq (free).
 
 Response quality was measured and improved using an automated eval pipeline — from **3.2 → 4.1 out of 5 (28% improvement)** through iterative prompt engineering.
 
-🚀 **[Live Demo](https://your-app.onrender.com)** — powered by Groq's free API, no setup needed.
+🚀 **[Live Demo](https://detroitsportchatbot.onrender.com)** — powered by Groq's free API, no setup needed.
 
 ---
 
@@ -14,11 +14,32 @@ Response quality was measured and improved using an automated eval pipeline — 
 
 - Conversational AI powered by Claude Sonnet or Llama 3.3 via Groq
 - Supports both Anthropic and Groq — switch providers in the sidebar
-- Live scores and game data from the ESPN unofficial API
+- 13 live data tools powered by the ESPN unofficial API
 - Tool use — the model decides when to fetch live data based on the question
 - Streaming responses displayed word by word
 - Prompt-engineered system prompt scored and improved through automated eval (3.2 → 4.1 out of 5)
 - Secure API key handling with python-dotenv
+
+---
+
+## Live Data Tools
+
+The chatbot has access to 13 ESPN API tools covering all four Detroit teams:
+
+| Tool | What it returns |
+|---|---|
+| Scores | Live scores and game status for NFL, NBA, MLB, NHL |
+| Standings | Conference standings |
+| Schedule | Next 5 upcoming games |
+| Injuries | Current injury report |
+| Roster | Full roster by position group |
+| News | Latest headlines for the sport |
+| Team Stats | Season statistics |
+| Transactions | Recent signings, trades, and cuts |
+| Depth Chart | Starters and backups by position |
+| Leaders | Top performers from the current or most recent game |
+| Play-by-Play | Live play-by-play during active games |
+| Box Score | Full box score from the current or most recent game |
 
 ---
 
@@ -83,7 +104,7 @@ DetroitSportChatBot/
 
 1. User asks a question in the chat UI
 2. The selected model receives the question along with a Detroit sports system prompt
-3. If the question is about live scores, the model calls the ESPN API tool
+3. If the question requires live data, the model calls the appropriate ESPN API tool
 4. The live data is returned to the model and included in the response
 5. The response streams back word by word to the UI
 

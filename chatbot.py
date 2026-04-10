@@ -14,6 +14,11 @@ from sports_tools import (
     get_roster,
     get_news,
     get_team_stats,
+    get_transactions,
+    get_depth_chart,
+    get_leaders,
+    get_play_by_play,
+    get_box_score,
     tools,
     groq_tools,
 )
@@ -128,6 +133,16 @@ def run_tool(tool_name: str, tool_input: dict = {}) -> list:
         return get_news(tool_input.get("sport", "nfl"))
     elif tool_name == "get_team_stats":
         return get_team_stats(tool_input.get("sport", "nfl"))
+    elif tool_name == "get_transactions":
+        return get_transactions(tool_input.get("sport", "nfl"))
+    elif tool_name == "get_depth_chart":
+        return get_depth_chart(tool_input.get("sport", "nfl"))
+    elif tool_name == "get_leaders":
+        return get_leaders(tool_input.get("sport", "nfl"))
+    elif tool_name == "get_play_by_play":
+        return get_play_by_play(tool_input.get("sport", "nfl"))
+    elif tool_name == "get_box_score":
+        return get_box_score(tool_input.get("sport", "nfl"))
     return []
 
 

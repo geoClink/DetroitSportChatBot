@@ -285,6 +285,186 @@ def get_roster(sport: str) -> dict:
     return roster
 
 
+def _get_det_game_id(sport_path: str, league: str) -> str | None:
+    """Find the current or most recent Detroit game ID from the scoreboard."""
+    url = f"https://site.api.espn.com/apis/site/v2/sports/{sport_path}/{league}/scoreboard"
+    data = requests.get(url).json()
+    for event in data.get("events", []):
+        competitors = event["competitions"][0]["competitors"]
+        if any(t["team"]["abbreviation"] == "DET" for t in competitors):
+            return event["id"]
+    return None
+
+
+def get_transactions(sport: str) -> list:
+    """Get recent transactions (signings, trades, cuts) for the Detroit team."""
+    sport_map = {
+        "nfl": ("football", "nfl", "8"),
+        "mlb": ("baseball", "mlb", "6"),
+        "nhl": ("hockey", "nhl", "5"),
+        "nba": ("basketball", "nba", "8"),
+    }
+    if sport.lower() not in sport_map:
+        return [{"error": f"Unknown sport: {sport}"}]
+
+    sport_path, league, team_id = sport_map[sport.lower()]
+    url = f"https://site.api.espn.com/apis/site/v2/sports/{sport_path}/{league}/transactions?limit=10&team={team_id}"
+    data = requests.get(url).json()
+
+    transactions = []
+    for item in data.get("transactions", []):
+        transactions.append(
+            {
+                "description": item.get("description", ""),
+                "date": item.get("date", "")[:10],
+            }
+        )
+    return transactions if transactions else [{"message": "No recent transactions"}]
+
+
+def get_depth_chart(sport: str) -> list:
+    """Get the depth chart (starters and backups by position) for the Detroit team."""
+    sport_map = {
+        "nfl": ("football", "nfl"),
+        "mlb": ("baseball", "mlb"),
+        "nhl": ("hockey", "nhl"),
+        "nba": ("basketball", "nba"),
+    }
+    if sport.lower() not in sport_map:
+        return [{"error": f"Unknown sport: {sport}"}]
+
+    sport_path, league = sport_map[sport.lower()]
+    url = (
+        f"https://site.api.espn.com/apis/site/v2/sports/{sport_path}/{league}/teams/det/depthcharts"
+    )
+    data = requests.get(url).json()
+
+    depth_chart = []
+    for formation in data.get("depthchart", []):
+        positions = []
+        for pos_key, pos_data in formation.get("positions", {}).items():
+            athletes = [a.get("displayName", "") for a in pos_data.get("athletes", [])]
+            positions.append(
+                {
+                    "position": pos_data.get("position", {}).get("abbreviation", pos_key.upper()),
+                    "players": athletes,
+                }
+            )
+        depth_chart.append(
+            {
+                "formation": formation.get("name", ""),
+                "positions": positions,
+            }
+        )
+    return depth_chart if depth_chart else [{"message": "No depth chart available"}]
+
+
+def get_leaders(sport: str) -> list:
+    """Get the statistical leaders from the Detroit team's current or most recent game."""
+    sport_map = {
+        "nfl": ("football", "nfl"),
+        "mlb": ("baseball", "mlb"),
+        "nhl": ("hockey", "nhl"),
+        "nba": ("basketball", "nba"),
+    }
+    if sport.lower() not in sport_map:
+        return [{"error": f"Unknown sport: {sport}"}]
+
+    sport_path, league = sport_map[sport.lower()]
+    game_id = _get_det_game_id(sport_path, league)
+    if not game_id:
+        return [{"message": "No current game found for Detroit"}]
+
+    url = f"https://site.api.espn.com/apis/site/v2/sports/{sport_path}/{league}/summary?event={game_id}"
+    data = requests.get(url).json()
+
+    result = []
+    for team_leaders in data.get("leaders", []):
+        team_name = team_leaders.get("team", {}).get("displayName", "")
+        stats = []
+        for leader in team_leaders.get("leaders", []):
+            top = leader.get("leaders", [{}])[0]
+            stats.append(
+                {
+                    "stat": leader.get("displayName", ""),
+                    "player": top.get("athlete", {}).get("displayName", ""),
+                    "value": top.get("displayValue", ""),
+                }
+            )
+        result.append({"team": team_name, "leaders": stats})
+    return result if result else [{"message": "No leader data available"}]
+
+
+def get_play_by_play(sport: str) -> list:
+    """Get live play-by-play for the Detroit team's current game. Only available during active games."""
+    sport_map = {
+        "nfl": ("football", "nfl"),
+        "mlb": ("baseball", "mlb"),
+        "nhl": ("hockey", "nhl"),
+        "nba": ("basketball", "nba"),
+    }
+    if sport.lower() not in sport_map:
+        return [{"error": f"Unknown sport: {sport}"}]
+
+    sport_path, league = sport_map[sport.lower()]
+    game_id = _get_det_game_id(sport_path, league)
+    if not game_id:
+        return [{"message": "No current game found for Detroit"}]
+
+    url = f"https://site.api.espn.com/apis/site/v2/sports/{sport_path}/{league}/summary?event={game_id}"
+    data = requests.get(url).json()
+
+    plays = data.get("plays", [])
+    if not plays:
+        return [{"message": "No play-by-play data available (game may not be live yet)"}]
+
+    # Return the last 10 plays
+    recent_plays = []
+    for play in plays[-10:]:
+        recent_plays.append(
+            {
+                "description": play.get("text", ""),
+                "clock": play.get("clock", {}).get("displayValue", ""),
+                "period": play.get("period", {}).get("number", ""),
+                "score": play.get("homeScore", ""),
+            }
+        )
+    return recent_plays
+
+
+def get_box_score(sport: str) -> list:
+    """Get the box score from the Detroit team's current or most recent game."""
+    sport_map = {
+        "nfl": ("football", "nfl"),
+        "mlb": ("baseball", "mlb"),
+        "nhl": ("hockey", "nhl"),
+        "nba": ("basketball", "nba"),
+    }
+    if sport.lower() not in sport_map:
+        return [{"error": f"Unknown sport: {sport}"}]
+
+    sport_path, league = sport_map[sport.lower()]
+    game_id = _get_det_game_id(sport_path, league)
+    if not game_id:
+        return [{"message": "No current game found for Detroit"}]
+
+    url = f"https://site.api.espn.com/apis/site/v2/sports/{sport_path}/{league}/summary?event={game_id}"
+    data = requests.get(url).json()
+
+    result = []
+    for team_data in data.get("boxscore", {}).get("players", []):
+        team_name = team_data.get("team", {}).get("displayName", "")
+        team_stats = []
+        for stat_group in team_data.get("statistics", []):
+            stat_names = stat_group.get("names", [])
+            for athlete in stat_group.get("athletes", []):
+                player_name = athlete.get("athlete", {}).get("displayName", "")
+                stats = dict(zip(stat_names, athlete.get("stats", [])))
+                team_stats.append({"player": player_name, "stats": stats})
+        result.append({"team": team_name, "players": team_stats})
+    return result if result else [{"message": "No box score available"}]
+
+
 # Anthropic tool format
 tools = [
     {
@@ -365,6 +545,61 @@ tools = [
     {
         "name": "get_team_stats",
         "description": "Get season statistics for a Detroit team. Use sport='nfl' for Lions, 'mlb' for Tigers, 'nhl' for Red Wings, 'nba' for Pistons.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "sport": {"type": "string", "description": "One of: nfl, mlb, nhl, nba"}
+            },
+            "required": ["sport"],
+        },
+    },
+    {
+        "name": "get_transactions",
+        "description": "Get recent signings, trades, and cuts for a Detroit team. Use sport='nfl' for Lions, 'mlb' for Tigers, 'nhl' for Red Wings, 'nba' for Pistons.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "sport": {"type": "string", "description": "One of: nfl, mlb, nhl, nba"}
+            },
+            "required": ["sport"],
+        },
+    },
+    {
+        "name": "get_depth_chart",
+        "description": "Get the depth chart showing starters and backups by position for a Detroit team. Use sport='nfl' for Lions, 'mlb' for Tigers, 'nhl' for Red Wings, 'nba' for Pistons.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "sport": {"type": "string", "description": "One of: nfl, mlb, nhl, nba"}
+            },
+            "required": ["sport"],
+        },
+    },
+    {
+        "name": "get_leaders",
+        "description": "Get the statistical leaders from the Detroit team's current or most recent game. Use sport='nfl' for Lions, 'mlb' for Tigers, 'nhl' for Red Wings, 'nba' for Pistons.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "sport": {"type": "string", "description": "One of: nfl, mlb, nhl, nba"}
+            },
+            "required": ["sport"],
+        },
+    },
+    {
+        "name": "get_play_by_play",
+        "description": "Get live play-by-play for the Detroit team's current game. Only returns data during active games. Use sport='nfl' for Lions, 'mlb' for Tigers, 'nhl' for Red Wings, 'nba' for Pistons.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "sport": {"type": "string", "description": "One of: nfl, mlb, nhl, nba"}
+            },
+            "required": ["sport"],
+        },
+    },
+    {
+        "name": "get_box_score",
+        "description": "Get the box score from the Detroit team's current or most recent game. Use sport='nfl' for Lions, 'mlb' for Tigers, 'nhl' for Red Wings, 'nba' for Pistons.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -484,6 +719,76 @@ groq_tools = [
         "function": {
             "name": "get_team_stats",
             "description": "Get season statistics for a Detroit team. Use sport='nfl' for Lions, 'mlb' for Tigers, 'nhl' for Red Wings, 'nba' for Pistons.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "sport": {"type": "string", "description": "One of: nfl, mlb, nhl, nba"}
+                },
+                "required": ["sport"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_transactions",
+            "description": "Get recent signings, trades, and cuts for a Detroit team. Use sport='nfl' for Lions, 'mlb' for Tigers, 'nhl' for Red Wings, 'nba' for Pistons.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "sport": {"type": "string", "description": "One of: nfl, mlb, nhl, nba"}
+                },
+                "required": ["sport"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_depth_chart",
+            "description": "Get the depth chart showing starters and backups by position for a Detroit team. Use sport='nfl' for Lions, 'mlb' for Tigers, 'nhl' for Red Wings, 'nba' for Pistons.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "sport": {"type": "string", "description": "One of: nfl, mlb, nhl, nba"}
+                },
+                "required": ["sport"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_leaders",
+            "description": "Get the statistical leaders from the Detroit team's current or most recent game. Use sport='nfl' for Lions, 'mlb' for Tigers, 'nhl' for Red Wings, 'nba' for Pistons.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "sport": {"type": "string", "description": "One of: nfl, mlb, nhl, nba"}
+                },
+                "required": ["sport"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_play_by_play",
+            "description": "Get live play-by-play for the Detroit team's current game. Only returns data during active games. Use sport='nfl' for Lions, 'mlb' for Tigers, 'nhl' for Red Wings, 'nba' for Pistons.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "sport": {"type": "string", "description": "One of: nfl, mlb, nhl, nba"}
+                },
+                "required": ["sport"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_box_score",
+            "description": "Get the box score from the Detroit team's current or most recent game. Use sport='nfl' for Lions, 'mlb' for Tigers, 'nhl' for Red Wings, 'nba' for Pistons.",
             "parameters": {
                 "type": "object",
                 "properties": {
