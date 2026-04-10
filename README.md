@@ -2,15 +2,16 @@
 
 An AI-powered chatbot that answers questions about Detroit sports — the Lions, Tigers, Red Wings, and Pistons — with live scores fetched in real time from the ESPN API.
 
-Built with Python, the Anthropic Claude API, and Streamlit.
+Built with Python, Streamlit, and support for both Anthropic Claude and Groq (free).
 
 ---
 
 ## Features
 
-- Conversational AI powered by Claude claude-sonnet-4-6
+- Conversational AI powered by Claude Sonnet or Llama 3.3 via Groq
+- Supports both Anthropic and Groq — switch providers in the sidebar
 - Live scores and game data from the ESPN unofficial API
-- Tool use — Claude decides when to fetch live data based on the question
+- Tool use — the model decides when to fetch live data based on the question
 - Streaming responses displayed word by word
 - Prompt-engineered system prompt scored and improved through automated eval (3.2 → 4.1 out of 5)
 - Secure API key handling with python-dotenv
@@ -21,7 +22,7 @@ Built with Python, the Anthropic Claude API, and Streamlit.
 
 **1. Clone the repo**
 ```bash
-git clone https://github.com/your-username/DetroitSportChatBot.git
+git clone https://github.com/geoClink/DetroitSportChatBot.git
 cd DetroitSportChatBot
 ```
 
@@ -36,12 +37,19 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-**4. Add your Anthropic API key**
+**4. Add your API key**
 
-Create a `.env` file in the project root:
+Create a `.env` file in the project root. You can use either provider:
+
 ```
+# Option 1 — Anthropic (get a key at console.anthropic.com)
 ANTHROPIC_API_KEY=your-key-here
+
+# Option 2 — Groq (free, get a key at console.groq.com)
+GROQ_API_KEY=your-key-here
 ```
+
+You can also paste your key directly in the sidebar when the app is running.
 
 **5. Run the app**
 ```bash
@@ -56,12 +64,12 @@ Open your browser at `http://localhost:8501`
 
 ```
 DetroitSportChatBot/
-├── app.py              # Streamlit UI
-├── chatbot.py          # Claude API logic and tool use
-├── sports_tools.py     # ESPN API functions and tool schemas
-├── eval.py             # Automated prompt evaluation
+├── app.py              # Streamlit UI with provider selector
+├── chatbot.py          # API logic for Anthropic and Groq, tool use, streaming
+├── sports_tools.py     # ESPN API functions and tool schemas for both providers
+├── eval.py             # Automated prompt evaluation and grading
 ├── requirements.txt    # Dependencies
-├── .env                # API key (not committed)
+├── .env                # API keys (not committed)
 └── .gitignore
 ```
 
@@ -70,9 +78,9 @@ DetroitSportChatBot/
 ## How It Works
 
 1. User asks a question in the chat UI
-2. Claude receives the question along with a Detroit sports system prompt
-3. If the question is about live scores, Claude calls the ESPN API tool
-4. The live data is returned to Claude and included in the response
+2. The selected model receives the question along with a Detroit sports system prompt
+3. If the question is about live scores, the model calls the ESPN API tool
+4. The live data is returned to the model and included in the response
 5. The response streams back word by word to the UI
 
 ---
@@ -94,6 +102,7 @@ The system prompt was iteratively improved using an automated eval pipeline:
 
 - Python
 - Anthropic Claude API
+- Groq API (free tier)
 - Streamlit
 - ESPN unofficial API
 - python-dotenv

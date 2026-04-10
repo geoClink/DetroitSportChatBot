@@ -1,12 +1,18 @@
 import os
 import json
 import anthropic
+from groq import Groq
 from dotenv import load_dotenv
-from sports_tools import get_nfl_scores, get_nba_scores, get_mlb_scores, get_nhl_scores, tools
+from sports_tools import (
+    get_nfl_scores,
+    get_nba_scores,
+    get_mlb_scores,
+    get_nhl_scores,
+    tools,
+    groq_tools,
+)
 
 load_dotenv()
-
-client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 
 SYSTEM_PROMPT = """You are an expert and enthusiastic Detroit sports fan and analyst.
 You have deep knowledge of all four major Detroit sports teams:
@@ -68,11 +74,6 @@ titles in 1989 and 1990. Want to hear about Detroit basketball?</assistant>
 <assistant>The Philadelphia Eagles defeated the Kansas City Chiefs 40-22 in Super Bowl LIX on February 9, 2025. That is what I know from my training data — I do not have a tool for historical results so I will not add any speculation beyond that.</assistant>
 </example>
 
-<example>
-<user>Tell me about the Yankees</user>
-<assistant>The Yankees have 27 World Series titles — one of the most storied franchises in baseball. Speaking of great baseball, the Tigers won the Triple Crown with Miguel Cabrera in 2012. Want to talk Detroit?</assistant>
-</example>
-
 </examples>
 
 <bad_examples>
@@ -100,7 +101,7 @@ GORDIE HOWE!!! HE IS THE ABSOLUTE GOAT!!!</response>
 </bad_examples>"""
 
 
-def run_tool(tool_name):
+def run_tool(tool_name: str) -> list:
     if tool_name == "get_nfl_scores":
         return get_nfl_scores()
     elif tool_name == "get_nba_scores":
@@ -109,10 +110,13 @@ def run_tool(tool_name):
         return get_mlb_scores()
     elif tool_name == "get_nhl_scores":
         return get_nhl_scores()
+    return []
 
 
-def chat(messages):
-    # Step 1: handle tool use with non-streaming
+def chat_anthropic(messages: list, api_key: str):
+    client = anthropic.Anthropic(api_key=api_key)
+
+    # Handle tool use
     response = client.messages.create(
         model="claude-sonnet-4-6",
         max_tokens=1000,
@@ -145,9 +149,65 @@ def chat(messages):
             messages=messages,
         )
 
-    # Step 2: stream the final text response word by word
+    # Stream final response
     with client.messages.stream(
-        model="claude-sonnet-4-6", max_tokens=1000, system=SYSTEM_PROMPT, messages=messages
+        model="claude-sonnet-4-6",
+        max_tokens=1000,
+        system=SYSTEM_PROMPT,
+        messages=messages,
     ) as stream:
         for text in stream.text_stream:
             yield text
+
+
+def chat_groq(messages: list, api_key: str):
+    client = Groq(api_key=api_key)
+
+    # Build messages in OpenAI format with system prompt
+    groq_messages = [{"role": "system", "content": SYSTEM_PROMPT}] + messages
+
+    # Handle tool use
+    response = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=groq_messages,
+        tools=groq_tools,
+        tool_choice="auto",
+    )
+
+    while response.choices[0].finish_reason == "tool_calls":
+        tool_calls = response.choices[0].message.tool_calls
+        groq_messages.append(response.choices[0].message)
+
+        for tool_call in tool_calls:
+            tool_result = run_tool(tool_call.function.name)
+            groq_messages.append(
+                {
+                    "role": "tool",
+                    "tool_call_id": tool_call.id,
+                    "content": json.dumps(tool_result),
+                }
+            )
+
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=groq_messages,
+            tools=groq_tools,
+            tool_choice="auto",
+        )
+
+    # Stream final response
+    stream = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=groq_messages,
+        stream=True,
+    )
+    for chunk in stream:
+        if chunk.choices[0].delta.content:
+            yield chunk.choices[0].delta.content
+
+
+def chat(messages: list, provider: str = "anthropic", api_key: str = ""):
+    if provider == "groq":
+        yield from chat_groq(messages, api_key)
+    else:
+        yield from chat_anthropic(messages, api_key)
