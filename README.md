@@ -6,6 +6,8 @@ Built with Python, Streamlit, and support for both Anthropic Claude and Groq (fr
 
 Response quality was measured and improved using an automated eval pipeline — from **3.2 → 4.1 out of 5 (28% improvement)** through iterative prompt engineering.
 
+🚀 **[Live Demo](https://your-app.onrender.com)** — powered by Groq's free API, no setup needed.
+
 ---
 
 ## Features
