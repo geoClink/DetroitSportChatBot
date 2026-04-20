@@ -2,7 +2,6 @@ import os
 import time
 import streamlit as st
 from groq import RateLimitError, AuthenticationError
-import openai
 from chatbot import chat
 from dotenv import load_dotenv
 
@@ -60,14 +59,11 @@ st.title("Detroit Sports Chatbot")
 
 with st.sidebar:
     st.title("Settings")
-    provider = st.selectbox("Provider", ["OpenRouter", "Groq", "Anthropic"])
+    provider = st.selectbox("Provider", ["Groq", "Anthropic"])
 
     if provider == "Groq":
         server_key = os.environ.get("GROQ_API_KEY", "")
         st.caption("Get a free key at console.groq.com")
-    elif provider == "OpenRouter":
-        server_key = os.environ.get("OPENROUTER_API_KEY", "")
-        st.caption("Get a free key at openrouter.ai")
     else:
         server_key = os.environ.get("ANTHROPIC_API_KEY", "")
         st.caption("Get a free key at console.anthropic.com")
@@ -171,18 +167,6 @@ if user_input:
                 text_placeholder.error(
                     "Invalid API key. Please check your key and try again. "
                     "Get a free key at [console.groq.com](https://console.groq.com)."
-                )
-                st.stop()
-            except openai.RateLimitError:
-                tool_placeholder.empty()
-                text_placeholder.warning(
-                    "The free model is temporarily rate-limited. Wait a moment and try again."
-                )
-                st.stop()
-            except openai.AuthenticationError:
-                tool_placeholder.empty()
-                text_placeholder.error(
-                    "Invalid OpenRouter API key. Please check your key and try again."
                 )
                 st.stop()
 

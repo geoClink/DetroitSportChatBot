@@ -17,3 +17,8 @@
 - app.py — Streamlit UI, displays the chat interface in the browser
 - sports_tools.py — fetches live scores from ESPN API
 - eval.py — automated prompt evaluation and grading
+
+## Development Workflow
+- To test prompt changes: Run `python eval.py` and review the grade.
+- UI Testing: Launch with `streamlit run app.py`.
+- Tool testing: Use the `@terminal` to debug `sports_tools.py` if scores aren't returning.
