@@ -3,3 +3,5 @@ streamlit
 requests
 python-dotenv
 groq
+streamlit-mic-recorder
+gTTS
