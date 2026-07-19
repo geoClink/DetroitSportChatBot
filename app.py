@@ -12,6 +12,7 @@ from sports_tools import get_nfl_scores, get_nba_scores, get_mlb_scores, get_nhl
 
 
 RATE_LIMIT = 10  # max requests per minute
+MAX_CONTEXT_MESSAGES = 20  # ~10 back-and-forth exchanges sent to the API
 
 DETROIT_TEAMS = {
     "nfl": "Detroit Lions",
@@ -48,6 +49,17 @@ SUGGESTED_QUESTIONS = [
     "Who's starting at QB for the Lions?",
     "Show me the Pistons box score",
 ]
+
+def trim_messages(messages: list) -> list:
+    """Return only the most recent MAX_CONTEXT_MESSAGES, always starting with a user turn."""
+    if len(messages) <= MAX_CONTEXT_MESSAGES:
+        return messages
+    trimmed = messages[-MAX_CONTEXT_MESSAGES:]
+    # Drop a leading assistant message if the slice starts mid-exchange
+    while trimmed and trimmed[0]["role"] != "user":
+        trimmed = trimmed[1:]
+    return trimmed
+
 
 load_dotenv()
 
@@ -116,7 +128,9 @@ def fetch_detroit_scores() -> list[dict]:
         for game in games:
             if "error" in game:
                 continue
-            if game["home"] == detroit_name or game["away"] == detroit_name:
+            is_detroit = game["home"] == detroit_name or game["away"] == detroit_name
+            is_active = game["status"] != "Scheduled"
+            if is_detroit and is_active:
                 detroit_games.append({**game, "sport": sport})
     return detroit_games
 
@@ -263,7 +277,7 @@ if user_input:
             thinking_placeholder.caption("⏳ Thinking...")
 
             try:
-                for chunk in chat(st.session_state.messages, provider.lower(), api_key):
+                for chunk in chat(trim_messages(st.session_state.messages), provider.lower(), api_key):
                     if isinstance(chunk, dict) and "tool" in chunk:
                         # Show which ESPN tool is being called
                         thinking_placeholder.empty()
