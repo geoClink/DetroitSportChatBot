@@ -3,25 +3,7 @@ import json
 import anthropic
 from groq import Groq
 from dotenv import load_dotenv
-from sports_tools import (
-    get_nfl_scores,
-    get_nba_scores,
-    get_mlb_scores,
-    get_nhl_scores,
-    get_standings,
-    get_schedule,
-    get_injuries,
-    get_roster,
-    get_news,
-    get_team_stats,
-    get_transactions,
-    get_depth_chart,
-    get_leaders,
-    get_play_by_play,
-    get_box_score,
-    tools,
-    groq_tools,
-)
+from sports_tools import tools, groq_tools, run_tool
 
 load_dotenv()
 
@@ -122,55 +104,31 @@ GORDIE HOWE!!! HE IS THE ABSOLUTE GOAT!!!</response>
 </bad_examples>"""
 
 
-def run_tool(tool_name: str, tool_input: dict = {}) -> list:
-    if tool_name == "get_nfl_scores":
-        return get_nfl_scores()
-    elif tool_name == "get_nba_scores":
-        return get_nba_scores()
-    elif tool_name == "get_mlb_scores":
-        return get_mlb_scores()
-    elif tool_name == "get_nhl_scores":
-        return get_nhl_scores()
-    elif tool_name == "get_standings":
-        return get_standings(tool_input.get("sport", "nfl"))
-    elif tool_name == "get_schedule":
-        return get_schedule(tool_input.get("sport", "nfl"))
-    elif tool_name == "get_injuries":
-        return get_injuries(tool_input.get("sport", "nfl"))
-    elif tool_name == "get_roster":
-        return get_roster(tool_input.get("sport", "nfl"))
-    elif tool_name == "get_news":
-        return get_news(tool_input.get("sport", "nfl"))
-    elif tool_name == "get_team_stats":
-        return get_team_stats(tool_input.get("sport", "nfl"))
-    elif tool_name == "get_transactions":
-        return get_transactions(tool_input.get("sport", "nfl"))
-    elif tool_name == "get_depth_chart":
-        return get_depth_chart(tool_input.get("sport", "nfl"))
-    elif tool_name == "get_leaders":
-        return get_leaders(tool_input.get("sport", "nfl"))
-    elif tool_name == "get_play_by_play":
-        return get_play_by_play(tool_input.get("sport", "nfl"))
-    elif tool_name == "get_box_score":
-        return get_box_score(tool_input.get("sport", "nfl"))
-    return []
-
-
 def chat_anthropic(messages: list, api_key: str):
     client = anthropic.Anthropic(api_key=api_key)
 
-    # Handle tool use
-    response = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=1000,
-        system=SYSTEM_PROMPT,
-        tools=tools,
-        messages=messages,
-    )
+    # Stream every request, including tool-use rounds.
+    # When the model calls a tool, text_stream yields nothing (tool_use blocks
+    # have no text), so we detect the tool call via get_final_message() after
+    # the stream ends, fire the tool signal, then loop back and stream the
+    # final text response word-by-word with no extra API call.
+    while True:
+        with client.messages.stream(
+            model="claude-sonnet-4-6",
+            max_tokens=1000,
+            system=SYSTEM_PROMPT,
+            tools=tools,
+            messages=messages,
+        ) as stream:
+            for text in stream.text_stream:
+                yield text
+            response = stream.get_final_message()
 
-    while response.stop_reason == "tool_use":
+        if response.stop_reason != "tool_use":
+            break
+
         tool_use = next(b for b in response.content if b.type == "tool_use")
-        yield {"tool": tool_use.name}  # signal which tool is being called
+        yield {"tool": tool_use.name}
         tool_result = run_tool(tool_use.name, tool_use.input)
         messages = messages + [
             {"role": "assistant", "content": response.content},
@@ -185,23 +143,6 @@ def chat_anthropic(messages: list, api_key: str):
                 ],
             },
         ]
-        response = client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=1000,
-            system=SYSTEM_PROMPT,
-            tools=tools,
-            messages=messages,
-        )
-
-    # Stream final response
-    with client.messages.stream(
-        model="claude-sonnet-4-6",
-        max_tokens=1000,
-        system=SYSTEM_PROMPT,
-        messages=messages,
-    ) as stream:
-        for text in stream.text_stream:
-            yield text
 
 
 def chat_groq(messages: list, api_key: str):
@@ -212,7 +153,7 @@ def chat_groq(messages: list, api_key: str):
 
     # Handle tool use
     response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model="llama-3.1-70b-versatile",
         messages=groq_messages,
         tools=groq_tools,
         tool_choice="auto",
@@ -236,7 +177,7 @@ def chat_groq(messages: list, api_key: str):
             )
 
         response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model="llama-3.1-70b-versatile",
             messages=groq_messages,
             tools=groq_tools,
             tool_choice="auto",
@@ -244,7 +185,7 @@ def chat_groq(messages: list, api_key: str):
 
     # Stream final response
     stream = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model="llama-3.1-70b-versatile",
         messages=groq_messages,
         stream=True,
     )

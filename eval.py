@@ -2,24 +2,7 @@ import json
 import os
 from groq import Groq
 from dotenv import load_dotenv
-from sports_tools import (
-    get_nfl_scores,
-    get_nba_scores,
-    get_mlb_scores,
-    get_nhl_scores,
-    get_standings,
-    get_schedule,
-    get_injuries,
-    get_roster,
-    get_news,
-    get_team_stats,
-    get_transactions,
-    get_depth_chart,
-    get_leaders,
-    get_play_by_play,
-    get_box_score,
-    groq_tools,
-)
+from sports_tools import groq_tools, run_tool
 
 load_dotenv()
 
@@ -67,47 +50,13 @@ test_cases = [
 ]
 
 
-def run_tool(tool_name: str, tool_input: dict = {}) -> list:
-    if tool_name == "get_nfl_scores":
-        return get_nfl_scores()
-    elif tool_name == "get_nba_scores":
-        return get_nba_scores()
-    elif tool_name == "get_mlb_scores":
-        return get_mlb_scores()
-    elif tool_name == "get_nhl_scores":
-        return get_nhl_scores()
-    elif tool_name == "get_standings":
-        return get_standings(tool_input.get("sport", "nfl"))
-    elif tool_name == "get_schedule":
-        return get_schedule(tool_input.get("sport", "nfl"))
-    elif tool_name == "get_injuries":
-        return get_injuries(tool_input.get("sport", "nfl"))
-    elif tool_name == "get_roster":
-        return get_roster(tool_input.get("sport", "nfl"))
-    elif tool_name == "get_news":
-        return get_news(tool_input.get("sport", "nfl"))
-    elif tool_name == "get_team_stats":
-        return get_team_stats(tool_input.get("sport", "nfl"))
-    elif tool_name == "get_transactions":
-        return get_transactions(tool_input.get("sport", "nfl"))
-    elif tool_name == "get_depth_chart":
-        return get_depth_chart(tool_input.get("sport", "nfl"))
-    elif tool_name == "get_leaders":
-        return get_leaders(tool_input.get("sport", "nfl"))
-    elif tool_name == "get_play_by_play":
-        return get_play_by_play(tool_input.get("sport", "nfl"))
-    elif tool_name == "get_box_score":
-        return get_box_score(tool_input.get("sport", "nfl"))
-    return []
-
-
 def ask(question):
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": question},
     ]
     response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model="llama-3.1-70b-versatile",
         messages=messages,
         tools=groq_tools,
         tool_choice="auto",
@@ -131,7 +80,7 @@ def ask(question):
             )
 
         response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model="llama-3.1-70b-versatile",
             messages=messages,
             tools=groq_tools,
             tool_choice="auto",
@@ -148,7 +97,7 @@ for case in test_cases:
     print(f"Answer: {answer}")
 
     grade_response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model="llama-3.1-70b-versatile",
         max_tokens=100,
         messages=[
             {

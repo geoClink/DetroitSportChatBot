@@ -29,8 +29,9 @@ def _fetch_espn(url: str) -> dict:
     return data
 
 
-def get_nfl_scores():
-    url = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard"
+def _get_scores(sport_path: str, league: str) -> list:
+    """Fetch scores from an ESPN scoreboard endpoint."""
+    url = f"https://site.api.espn.com/apis/site/v2/sports/{sport_path}/{league}/scoreboard"
     data = _fetch_espn(url)
     if "error" in data:
         return [data]
@@ -52,73 +53,20 @@ def get_nfl_scores():
     return games
 
 
-def get_nba_scores():
-    url = "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard"
-    data = _fetch_espn(url)
-    if "error" in data:
-        return [data]
-    games = []
-    for event in data.get("events", []):
-        competition = event["competitions"][0]
-        teams = competition["competitors"]
-        home = next(t for t in teams if t["homeAway"] == "home")
-        away = next(t for t in teams if t["homeAway"] == "away")
-        games.append(
-            {
-                "home": home["team"]["displayName"],
-                "away": away["team"]["displayName"],
-                "home_score": home.get("score", "0"),
-                "away_score": away.get("score", "0"),
-                "status": competition["status"]["type"]["description"],
-            }
-        )
-    return games
+def get_nfl_scores() -> list:
+    return _get_scores("football", "nfl")
 
 
-def get_mlb_scores():
-    url = "https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard"
-    data = _fetch_espn(url)
-    if "error" in data:
-        return [data]
-    games = []
-    for event in data.get("events", []):
-        competition = event["competitions"][0]
-        teams = competition["competitors"]
-        home = next(t for t in teams if t["homeAway"] == "home")
-        away = next(t for t in teams if t["homeAway"] == "away")
-        games.append(
-            {
-                "home": home["team"]["displayName"],
-                "away": away["team"]["displayName"],
-                "home_score": home.get("score", "0"),
-                "away_score": away.get("score", "0"),
-                "status": competition["status"]["type"]["description"],
-            }
-        )
-    return games
+def get_nba_scores() -> list:
+    return _get_scores("basketball", "nba")
 
 
-def get_nhl_scores():
-    url = "https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/scoreboard"
-    data = _fetch_espn(url)
-    if "error" in data:
-        return [data]
-    games = []
-    for event in data.get("events", []):
-        competition = event["competitions"][0]
-        teams = competition["competitors"]
-        home = next(t for t in teams if t["homeAway"] == "home")
-        away = next(t for t in teams if t["homeAway"] == "away")
-        games.append(
-            {
-                "home": home["team"]["displayName"],
-                "away": away["team"]["displayName"],
-                "home_score": home.get("score", "0"),
-                "away_score": away.get("score", "0"),
-                "status": competition["status"]["type"]["description"],
-            }
-        )
-    return games
+def get_mlb_scores() -> list:
+    return _get_scores("baseball", "mlb")
+
+
+def get_nhl_scores() -> list:
+    return _get_scores("hockey", "nhl")
 
 
 def get_standings(sport: str) -> list:
@@ -642,192 +590,41 @@ tools = [
     },
 ]
 
-# Groq/OpenAI tool format
+# Groq/OpenAI tool format — auto-generated from the Anthropic `tools` list above.
+# Anthropic uses "input_schema"; Groq uses "parameters" wrapped in {"type": "function"}.
 groq_tools = [
     {
         "type": "function",
         "function": {
-            "name": "get_nfl_scores",
-            "description": "Get current NFL scores and game statuses",
-            "parameters": {"type": "object", "properties": {}, "required": []},
+            "name": t["name"],
+            "description": t["description"],
+            "parameters": t["input_schema"],
         },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "get_nba_scores",
-            "description": "Get current NBA scores and game statuses",
-            "parameters": {"type": "object", "properties": {}, "required": []},
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "get_mlb_scores",
-            "description": "Get current MLB scores and game statuses",
-            "parameters": {"type": "object", "properties": {}, "required": []},
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "get_nhl_scores",
-            "description": "Get current NHL scores and game statuses",
-            "parameters": {"type": "object", "properties": {}, "required": []},
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "get_standings",
-            "description": "Get current standings for a Detroit team's sport. Use sport='nfl' for Lions, 'mlb' for Tigers, 'nhl' for Red Wings, 'nba' for Pistons.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "sport": {"type": "string", "description": "One of: nfl, mlb, nhl, nba"}
-                },
-                "required": ["sport"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "get_schedule",
-            "description": "Get the next 5 upcoming games for a Detroit team. Use sport='nfl' for Lions, 'mlb' for Tigers, 'nhl' for Red Wings, 'nba' for Pistons.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "sport": {"type": "string", "description": "One of: nfl, mlb, nhl, nba"}
-                },
-                "required": ["sport"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "get_injuries",
-            "description": "Get the injury report for a Detroit team. Use sport='nfl' for Lions, 'mlb' for Tigers, 'nhl' for Red Wings, 'nba' for Pistons.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "sport": {"type": "string", "description": "One of: nfl, mlb, nhl, nba"}
-                },
-                "required": ["sport"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "get_roster",
-            "description": "Get the current roster for a Detroit team. Use sport='nfl' for Lions, 'mlb' for Tigers, 'nhl' for Red Wings, 'nba' for Pistons.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "sport": {"type": "string", "description": "One of: nfl, mlb, nhl, nba"}
-                },
-                "required": ["sport"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "get_news",
-            "description": "Get the latest news headlines for a Detroit team's sport. Use sport='nfl' for Lions, 'mlb' for Tigers, 'nhl' for Red Wings, 'nba' for Pistons.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "sport": {"type": "string", "description": "One of: nfl, mlb, nhl, nba"}
-                },
-                "required": ["sport"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "get_team_stats",
-            "description": "Get season statistics for a Detroit team. Use sport='nfl' for Lions, 'mlb' for Tigers, 'nhl' for Red Wings, 'nba' for Pistons.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "sport": {"type": "string", "description": "One of: nfl, mlb, nhl, nba"}
-                },
-                "required": ["sport"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "get_transactions",
-            "description": "Get recent signings, trades, and cuts for a Detroit team. Use sport='nfl' for Lions, 'mlb' for Tigers, 'nhl' for Red Wings, 'nba' for Pistons.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "sport": {"type": "string", "description": "One of: nfl, mlb, nhl, nba"}
-                },
-                "required": ["sport"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "get_depth_chart",
-            "description": "Get the depth chart showing starters and backups by position for a Detroit team. Use sport='nfl' for Lions, 'mlb' for Tigers, 'nhl' for Red Wings, 'nba' for Pistons.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "sport": {"type": "string", "description": "One of: nfl, mlb, nhl, nba"}
-                },
-                "required": ["sport"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "get_leaders",
-            "description": "Get the statistical leaders from the Detroit team's current or most recent game. Use sport='nfl' for Lions, 'mlb' for Tigers, 'nhl' for Red Wings, 'nba' for Pistons.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "sport": {"type": "string", "description": "One of: nfl, mlb, nhl, nba"}
-                },
-                "required": ["sport"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "get_play_by_play",
-            "description": "Get live play-by-play for the Detroit team's current game. Only returns data during active games. Use sport='nfl' for Lions, 'mlb' for Tigers, 'nhl' for Red Wings, 'nba' for Pistons.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "sport": {"type": "string", "description": "One of: nfl, mlb, nhl, nba"}
-                },
-                "required": ["sport"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "get_box_score",
-            "description": "Get the box score from the Detroit team's current or most recent game. Use sport='nfl' for Lions, 'mlb' for Tigers, 'nhl' for Red Wings, 'nba' for Pistons.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "sport": {"type": "string", "description": "One of: nfl, mlb, nhl, nba"}
-                },
-                "required": ["sport"],
-            },
-        },
-    },
+    }
+    for t in tools
 ]
+
+# Dispatch table maps tool names to their implementations.
+_TOOL_DISPATCH: dict = {
+    "get_nfl_scores": lambda _: get_nfl_scores(),
+    "get_nba_scores": lambda _: get_nba_scores(),
+    "get_mlb_scores": lambda _: get_mlb_scores(),
+    "get_nhl_scores": lambda _: get_nhl_scores(),
+    "get_standings": lambda inp: get_standings(inp.get("sport", "nfl")),
+    "get_schedule": lambda inp: get_schedule(inp.get("sport", "nfl")),
+    "get_injuries": lambda inp: get_injuries(inp.get("sport", "nfl")),
+    "get_roster": lambda inp: get_roster(inp.get("sport", "nfl")),
+    "get_news": lambda inp: get_news(inp.get("sport", "nfl")),
+    "get_team_stats": lambda inp: get_team_stats(inp.get("sport", "nfl")),
+    "get_transactions": lambda inp: get_transactions(inp.get("sport", "nfl")),
+    "get_depth_chart": lambda inp: get_depth_chart(inp.get("sport", "nfl")),
+    "get_leaders": lambda inp: get_leaders(inp.get("sport", "nfl")),
+    "get_play_by_play": lambda inp: get_play_by_play(inp.get("sport", "nfl")),
+    "get_box_score": lambda inp: get_box_score(inp.get("sport", "nfl")),
+}
+
+
+def run_tool(tool_name: str, tool_input: dict = {}) -> list:
+    """Dispatch a tool name to its implementation and return the result."""
+    handler = _TOOL_DISPATCH.get(tool_name)
+    return handler(tool_input) if handler else []
