@@ -153,7 +153,7 @@ def chat_groq(messages: list, api_key: str):
 
     # Handle tool use
     response = client.chat.completions.create(
-        model="llama-3.1-70b-versatile",
+        model="openai/gpt-oss-120b",
         messages=groq_messages,
         tools=groq_tools,
         tool_choice="auto",
@@ -177,7 +177,7 @@ def chat_groq(messages: list, api_key: str):
             )
 
         response = client.chat.completions.create(
-            model="llama-3.1-70b-versatile",
+            model="openai/gpt-oss-120b",
             messages=groq_messages,
             tools=groq_tools,
             tool_choice="auto",
@@ -185,7 +185,7 @@ def chat_groq(messages: list, api_key: str):
 
     # Stream final response
     stream = client.chat.completions.create(
-        model="llama-3.1-70b-versatile",
+        model="openai/gpt-oss-120b",
         messages=groq_messages,
         stream=True,
     )

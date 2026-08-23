@@ -1,12 +1,14 @@
 import os
 import io
+import json
 import time
 import groq
 import streamlit as st
-from groq import RateLimitError, AuthenticationError
+from groq import RateLimitError, AuthenticationError, BadRequestError, NotFoundError
 from gtts import gTTS
 from chatbot import chat
 from dotenv import load_dotenv
+from pathlib import Path
 from streamlit_mic_recorder import mic_recorder
 from sports_tools import get_nfl_scores, get_nba_scores, get_mlb_scores, get_nhl_scores
 
@@ -41,14 +43,37 @@ TOOL_LABELS = {
     "get_box_score": "box score",
 }
 
-SUGGESTED_QUESTIONS = [
-    "Are the Lions playing today?",
+_STATIC_QUESTIONS = [
     "Show me the Pistons standings",
     "Who did the Tigers sign recently?",
     "What are the Red Wings team stats?",
     "Who's starting at QB for the Lions?",
     "Show me the Pistons box score",
+    "What does the Lions depth chart look like?",
 ]
+
+_LIVE_QUESTION = {
+    "nfl": "What's the Lions score right now?",
+    "mlb": "What's the Tigers score right now?",
+    "nhl": "What's the Red Wings score right now?",
+    "nba": "What's the Pistons score right now?",
+}
+
+
+def get_suggested_questions(detroit_games: list) -> list:
+    """Return suggested questions, surfacing live-game questions first."""
+    live = [_LIVE_QUESTION[g["sport"]] for g in detroit_games if g["sport"] in _LIVE_QUESTION]
+    static = [q for q in _STATIC_QUESTIONS if q not in live]
+    return (live + static)[:6]
+
+
+def load_eval_score() -> dict | None:
+    """Load the most recent eval results from disk, or return None if not run yet."""
+    path = Path(__file__).parent / "eval_results.json"
+    if path.exists():
+        with open(path) as f:
+            return json.load(f)
+    return None
 
 def trim_messages(messages: list) -> list:
     """Return only the most recent MAX_CONTEXT_MESSAGES, always starting with a user turn."""
@@ -191,10 +216,14 @@ with st.sidebar:
 
     st.divider()
     st.caption("Prompt Engineering")
-    st.progress(0.82, text="Eval score: 4.1 / 5")
-    st.caption(
-        "Improved from 3.2 → 4.1 (28%) through iterative prompt engineering with automated grading."
-    )
+    eval_data = load_eval_score()
+    if eval_data:
+        score = eval_data["average_score"]
+        st.progress(score / 5, text=f"Eval score: {score:.1f} / 5")
+        run_at = eval_data.get("run_at", "")[:10]
+        st.caption(f"Last run: {run_at} · {eval_data['total_cases']} test cases")
+    else:
+        st.caption("Run eval.py to see the current score.")
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -213,11 +242,12 @@ for msg in st.session_state.messages:
     with st.chat_message(msg["role"], avatar=avatar):
         st.write(msg["content"])
 
-# Show suggested questions only when chat is empty
+# Show suggested questions only when chat is empty.
+# Questions are dynamic — live-game questions bubble to the top when Detroit is playing.
 if not st.session_state.messages:
     st.caption("Try asking:")
     cols = st.columns(2)
-    for i, question in enumerate(SUGGESTED_QUESTIONS):
+    for i, question in enumerate(get_suggested_questions(detroit_games)):
         if cols[i % 2].button(question, key=f"suggested_{i}"):
             st.session_state.suggested_input = question
             st.rerun()
@@ -303,6 +333,13 @@ if user_input:
                 text_placeholder.error(
                     "Invalid API key. Please check your key and try again. "
                     "Get a free key at [console.groq.com](https://console.groq.com)."
+                )
+                st.stop()
+            except (BadRequestError, NotFoundError):
+                tool_placeholder.empty()
+                text_placeholder.error(
+                    "The Groq model is currently unavailable. "
+                    "Switch to **Anthropic** in the sidebar to keep chatting."
                 )
                 st.stop()
 

@@ -1,5 +1,6 @@
 import json
 import os
+from datetime import datetime
 from groq import Groq
 from dotenv import load_dotenv
 from sports_tools import groq_tools, run_tool
@@ -56,7 +57,7 @@ def ask(question):
         {"role": "user", "content": question},
     ]
     response = client.chat.completions.create(
-        model="llama-3.1-70b-versatile",
+        model="openai/gpt-oss-120b",
         messages=messages,
         tools=groq_tools,
         tool_choice="auto",
@@ -80,7 +81,7 @@ def ask(question):
             )
 
         response = client.chat.completions.create(
-            model="llama-3.1-70b-versatile",
+            model="openai/gpt-oss-120b",
             messages=messages,
             tools=groq_tools,
             tool_choice="auto",
@@ -97,7 +98,7 @@ for case in test_cases:
     print(f"Answer: {answer}")
 
     grade_response = client.chat.completions.create(
-        model="llama-3.1-70b-versatile",
+        model="openai/gpt-oss-120b",
         max_tokens=100,
         messages=[
             {
@@ -149,3 +150,15 @@ print(f"<summary>")
 print(f"  <total_cases>{len(results)}</total_cases>")
 print(f"  <average_score>{avg:.1f}/5</average_score>")
 print(f"</summary>")
+
+# Write results to a file so app.py can display the real, current score.
+# Commit eval_results.json after each eval run to keep Render in sync.
+eval_output = {
+    "average_score": round(avg, 2),
+    "total_cases": len(results),
+    "run_at": datetime.now().isoformat(timespec="seconds"),
+    "cases": results,
+}
+with open("eval_results.json", "w") as f:
+    json.dump(eval_output, f, indent=2)
+print(f"\nResults written to eval_results.json (score: {avg:.1f}/5)")
