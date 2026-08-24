@@ -32,6 +32,7 @@ TOOL_LABELS = {
     "get_nhl_scores": "NHL scores",
     "get_standings": "standings",
     "get_schedule": "schedule",
+    "get_recent_results": "recent results",
     "get_injuries": "injury report",
     "get_roster": "roster",
     "get_news": "news",
@@ -42,30 +43,6 @@ TOOL_LABELS = {
     "get_play_by_play": "play-by-play",
     "get_box_score": "box score",
 }
-
-_STATIC_QUESTIONS = [
-    "Show me the Pistons standings",
-    "Who did the Tigers sign recently?",
-    "What are the Red Wings team stats?",
-    "Who's starting at QB for the Lions?",
-    "Show me the Pistons box score",
-    "What does the Lions depth chart look like?",
-]
-
-_LIVE_QUESTION = {
-    "nfl": "What's the Lions score right now?",
-    "mlb": "What's the Tigers score right now?",
-    "nhl": "What's the Red Wings score right now?",
-    "nba": "What's the Pistons score right now?",
-}
-
-
-def get_suggested_questions(detroit_games: list) -> list:
-    """Return suggested questions, surfacing live-game questions first."""
-    live = [_LIVE_QUESTION[g["sport"]] for g in detroit_games if g["sport"] in _LIVE_QUESTION]
-    static = [q for q in _STATIC_QUESTIONS if q not in live]
-    return (live + static)[:6]
-
 
 def load_eval_score() -> dict | None:
     """Load the most recent eval results from disk, or return None if not run yet."""
@@ -122,14 +99,6 @@ st.markdown(
     /* Mobile: reduce side padding */
     @media (max-width: 768px) {
         .block-container { padding-left: 0.75rem; padding-right: 0.75rem; }
-    }
-
-    /* Suggested question buttons: left-align text */
-    div[data-testid="column"] button {
-        text-align: left;
-        white-space: normal;
-        height: auto;
-        padding: 0.4rem 0.6rem;
     }
     </style>
     """,
@@ -231,9 +200,6 @@ if "messages" not in st.session_state:
 if "request_times" not in st.session_state:
     st.session_state.request_times = []
 
-if "suggested_input" not in st.session_state:
-    st.session_state.suggested_input = None
-
 if "pending_input" not in st.session_state:
     st.session_state.pending_input = None
 
@@ -242,30 +208,15 @@ for msg in st.session_state.messages:
     with st.chat_message(msg["role"], avatar=avatar):
         st.write(msg["content"])
 
-# Show suggested questions only when chat is empty.
-# Questions are dynamic — live-game questions bubble to the top when Detroit is playing.
-if not st.session_state.messages:
-    st.caption("Try asking:")
-    cols = st.columns(2)
-    for i, question in enumerate(get_suggested_questions(detroit_games)):
-        if cols[i % 2].button(question, key=f"suggested_{i}"):
-            st.session_state.suggested_input = question
-            st.rerun()
-
 # If a previous message was dropped by the rate limiter, offer to resend it
 if st.session_state.pending_input:
     col1, col2 = st.columns([3, 1])
     col1.caption(f"Message not sent: _{st.session_state.pending_input}_")
     if col2.button("Resend"):
-        st.session_state.suggested_input = st.session_state.pending_input
         st.session_state.pending_input = None
         st.rerun()
 
-# Use suggested input if a button was clicked
 user_input = st.chat_input("Ask about Detroit sports...")
-if st.session_state.suggested_input:
-    user_input = st.session_state.suggested_input
-    st.session_state.suggested_input = None
 
 # Voice input: record audio, transcribe with Groq Whisper, use as user_input
 audio = mic_recorder(start_prompt="🎤 Speak", stop_prompt="⏹ Stop", key="mic")

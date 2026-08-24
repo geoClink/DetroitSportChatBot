@@ -139,6 +139,58 @@ def get_schedule(sport: str) -> list:
     return upcoming
 
 
+def get_recent_results(sport: str) -> list:
+    """Get the last 5 completed game results for the Detroit team in the given sport."""
+    sport_map = {
+        "nfl": ("football", "nfl"),
+        "mlb": ("baseball", "mlb"),
+        "nhl": ("hockey", "nhl"),
+        "nba": ("basketball", "nba"),
+    }
+    if sport.lower() not in sport_map:
+        return [{"error": f"Unknown sport: {sport}"}]
+
+    sport_path, league = sport_map[sport.lower()]
+    url = f"https://site.api.espn.com/apis/site/v2/sports/{sport_path}/{league}/teams/det/schedule"
+    data = _fetch_espn(url)
+
+    def _score(raw) -> str:
+        # Schedule endpoint returns score as {"value": 17.0, "displayValue": "17"}
+        if isinstance(raw, dict):
+            return raw.get("displayValue", "0")
+        return str(raw) if raw else "0"
+
+    completed = []
+    for event in data.get("events", []):
+        competition = event["competitions"][0]
+        if competition["status"]["type"]["name"] != "STATUS_FINAL":
+            continue
+        teams = competition["competitors"]
+        home = next(t for t in teams if t["homeAway"] == "home")
+        away = next(t for t in teams if t["homeAway"] == "away")
+        is_det_home = home["team"]["abbreviation"].upper() == "DET"
+        det = home if is_det_home else away
+        opp = away if is_det_home else home
+        det_score = _score(det.get("score"))
+        opp_score = _score(opp.get("score"))
+        try:
+            result = "W" if float(det_score) > float(opp_score) else "L"
+        except ValueError:
+            result = "?"
+        completed.append(
+            {
+                "date": event.get("date", "")[:10],
+                "opponent": opp["team"]["displayName"],
+                "location": "home" if is_det_home else "away",
+                "detroit_score": det_score,
+                "opponent_score": opp_score,
+                "result": result,
+            }
+        )
+
+    return completed[-5:] if completed else [{"message": "No completed games found"}]
+
+
 def get_injuries(sport: str) -> list:
     """Get injury report for the Detroit team in the given sport."""
     sport_map = {
@@ -177,18 +229,19 @@ def get_injuries(sport: str) -> list:
 
 
 def get_news(sport: str) -> list:
-    """Get the latest news headlines for the Detroit team's sport."""
+    """Get the latest news headlines for the Detroit team in the given sport."""
+    # team_id filters ESPN news to Detroit-specific stories instead of league-wide
     sport_map = {
-        "nfl": ("football", "nfl"),
-        "mlb": ("baseball", "mlb"),
-        "nhl": ("hockey", "nhl"),
-        "nba": ("basketball", "nba"),
+        "nfl": ("football", "nfl", "8"),
+        "mlb": ("baseball", "mlb", "6"),
+        "nhl": ("hockey", "nhl", "5"),
+        "nba": ("basketball", "nba", "8"),
     }
     if sport.lower() not in sport_map:
         return [{"error": f"Unknown sport: {sport}"}]
 
-    sport_path, league = sport_map[sport.lower()]
-    url = f"https://site.api.espn.com/apis/site/v2/sports/{sport_path}/{league}/news?limit=5"
+    sport_path, league, team_id = sport_map[sport.lower()]
+    url = f"https://site.api.espn.com/apis/site/v2/sports/{sport_path}/{league}/news?team={team_id}&limit=5"
     data = _fetch_espn(url)
 
     articles = []
@@ -490,6 +543,17 @@ tools = [
         },
     },
     {
+        "name": "get_recent_results",
+        "description": "Get the last 5 completed game results for a Detroit team, including score, opponent, win/loss, and date. Use sport='nfl' for Lions, 'mlb' for Tigers, 'nhl' for Red Wings, 'nba' for Pistons.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "sport": {"type": "string", "description": "One of: nfl, mlb, nhl, nba"}
+            },
+            "required": ["sport"],
+        },
+    },
+    {
         "name": "get_injuries",
         "description": "Get the injury report for a Detroit team. Use sport='nfl' for Lions, 'mlb' for Tigers, 'nhl' for Red Wings, 'nba' for Pistons.",
         "input_schema": {
@@ -612,6 +676,7 @@ _TOOL_DISPATCH: dict = {
     "get_nhl_scores": lambda _: get_nhl_scores(),
     "get_standings": lambda inp: get_standings(inp.get("sport", "nfl")),
     "get_schedule": lambda inp: get_schedule(inp.get("sport", "nfl")),
+    "get_recent_results": lambda inp: get_recent_results(inp.get("sport", "nfl")),
     "get_injuries": lambda inp: get_injuries(inp.get("sport", "nfl")),
     "get_roster": lambda inp: get_roster(inp.get("sport", "nfl")),
     "get_news": lambda inp: get_news(inp.get("sport", "nfl")),
