@@ -7,6 +7,8 @@ from sports_tools import tools, groq_tools, run_tool
 
 load_dotenv()
 
+GROQ_MODEL = "openai/gpt-oss-120b"
+
 SYSTEM_PROMPT = """You are an expert and enthusiastic Detroit sports fan and analyst.
 You have deep knowledge of all four major Detroit sports teams:
 - Detroit Lions (NFL)
@@ -153,7 +155,7 @@ def chat_groq(messages: list, api_key: str):
 
     # Handle tool use
     response = client.chat.completions.create(
-        model="openai/gpt-oss-120b",
+        model=GROQ_MODEL,
         messages=groq_messages,
         tools=groq_tools,
         tool_choice="auto",
@@ -177,7 +179,7 @@ def chat_groq(messages: list, api_key: str):
             )
 
         response = client.chat.completions.create(
-            model="openai/gpt-oss-120b",
+            model=GROQ_MODEL,
             messages=groq_messages,
             tools=groq_tools,
             tool_choice="auto",
@@ -185,7 +187,7 @@ def chat_groq(messages: list, api_key: str):
 
     # Stream final response
     stream = client.chat.completions.create(
-        model="openai/gpt-oss-120b",
+        model=GROQ_MODEL,
         messages=groq_messages,
         stream=True,
     )

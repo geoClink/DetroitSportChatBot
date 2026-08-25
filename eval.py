@@ -7,6 +7,8 @@ from sports_tools import groq_tools, run_tool
 
 load_dotenv()
 
+from chatbot import GROQ_MODEL
+
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
 SYSTEM_PROMPT = """You are an expert and enthusiastic Detroit sports fan and analyst.
@@ -57,7 +59,7 @@ def ask(question):
         {"role": "user", "content": question},
     ]
     response = client.chat.completions.create(
-        model="openai/gpt-oss-120b",
+        model=GROQ_MODEL,
         messages=messages,
         tools=groq_tools,
         tool_choice="auto",
@@ -81,7 +83,7 @@ def ask(question):
             )
 
         response = client.chat.completions.create(
-            model="openai/gpt-oss-120b",
+            model=GROQ_MODEL,
             messages=messages,
             tools=groq_tools,
             tool_choice="auto",
@@ -98,7 +100,7 @@ for case in test_cases:
     print(f"Answer: {answer}")
 
     grade_response = client.chat.completions.create(
-        model="openai/gpt-oss-120b",
+        model=GROQ_MODEL,
         max_tokens=100,
         messages=[
             {
